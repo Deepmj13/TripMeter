@@ -4,6 +4,9 @@
   "description": "Trip Expense Manager API (NestJS + MongoDB)",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "build": "nest build",
     "start": "nest start",
