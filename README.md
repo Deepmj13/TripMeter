@@ -94,8 +94,11 @@ flutter run --dart-define=API_BASE_URL=http://localhost:3000/v1
 
 Default API URLs when `API_BASE_URL` is omitted:
 
-- Android emulator: `http://10.0.2.2:3000/v1`
-- Everything else: `http://localhost:3000/v1`
+- Release builds: `https://tripmeter.onrender.com/v1`
+- Android emulator (debug): `http://10.0.2.2:3000/v1`
+- Everything else (debug): `http://localhost:3000/v1`
+
+Pass `--dart-define=API_BASE_URL=...` to override the default in any build mode.
 
 Local databases are encrypted with SQLite3MultipleCiphers. The database key is
 generated per user and stored in the platform secure storage, so a single

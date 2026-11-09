@@ -10,9 +10,11 @@ import '../core/sync/sync_manager.dart';
 import 'app_services.dart';
 
 const _configuredBaseUrl = String.fromEnvironment('API_BASE_URL');
+const _productionBaseUrl = 'https://tripmeter.onrender.com/v1';
 
 String defaultApiBaseUrl() {
   if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
+  if (kReleaseMode) return _productionBaseUrl;
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
     return 'http://10.0.2.2:3000/v1';
   }
