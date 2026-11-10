@@ -114,7 +114,6 @@ The app registers the `tripmeter` custom scheme:
 
 | Flow | Link |
 | --- | --- |
-| Email verification | `tripmeter://verify-email?token=...` |
 | Password reset | `tripmeter://reset-password?token=...` |
 | Trip invitation | `tripmeter://invitations/accept?token=...` |
 

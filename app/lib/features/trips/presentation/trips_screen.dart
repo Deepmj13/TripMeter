@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/app_services.dart';
 import '../../../core/database/app_database.dart';
-import '../../../shared/widgets/sync_status_bar.dart';
 
 class TripsScreen extends ConsumerWidget {
   const TripsScreen({super.key});
@@ -35,20 +34,6 @@ class TripsScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          const SyncStatusBar(),
-          if (services.session.user?.emailVerified == false)
-            MaterialBanner(
-              content: const Text(
-                'Verify your email to invite members and write changes.',
-              ),
-              leading: const Icon(Icons.mark_email_unread_outlined),
-              actions: [
-                TextButton(
-                  onPressed: () => context.push('/verify-email'),
-                  child: const Text('Verify'),
-                ),
-              ],
-            ),
           Expanded(
             child: StreamBuilder<List<LocalTrip>>(
               stream: services.trips.watchTrips(),

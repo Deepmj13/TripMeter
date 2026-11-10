@@ -28,7 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: AccessTokenPayload) {
     const user = await this.userModel
       .findOne({ _id: payload.sub, deletedAt: null })
-      .select('+passwordHash passwordChangedAt emailVerifiedAt')
+      .select('+passwordHash passwordChangedAt')
       .lean()
       .exec();
 
@@ -42,7 +42,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return {
       userId: user._id,
       familyId: payload.familyId,
-      emailVerifiedAt: user.emailVerifiedAt,
     };
   }
 }

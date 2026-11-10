@@ -10,7 +10,6 @@ export const SYNC_BATCH_SIZE = 100;
 
 export const ACCESS_TOKEN_TTL = process.env.JWT_ACCESS_TTL ?? '15m';
 export const REFRESH_TOKEN_TTL_DAYS = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 30);
-export const EMAIL_VERIFICATION_TTL_HOURS = Number(process.env.EMAIL_VERIFICATION_TTL_HOURS ?? 24);
 export const PASSWORD_RESET_TTL_MINUTES = Number(process.env.PASSWORD_RESET_TTL_MINUTES ?? 30);
 export const INVITATION_TTL_DAYS = Number(process.env.INVITATION_TTL_DAYS ?? 7);
 export const IDEMPOTENCY_RETENTION_DAYS = Number(process.env.IDEMPOTENCY_RETENTION_DAYS ?? 30);

@@ -44,13 +44,6 @@ export class TripsService {
     return this.idempotency.execute(userId, idempotencyKey, requestHash, async (session) => {
       const user = await this.userModel.findById(userId).session(session).exec();
       if (!user) throw AppError.notFound('TRIP_NOT_FOUND', 'Account not found');
-      if (!user.emailVerifiedAt) {
-        throw new AppError(
-          'AUTH_EMAIL_UNVERIFIED',
-          'Verify your email before creating a trip',
-          403,
-        );
-      }
 
       const tripId = dto.id ? assertUuid(dto.id, 'id') : randomUUID();
       const existing = await this.tripModel

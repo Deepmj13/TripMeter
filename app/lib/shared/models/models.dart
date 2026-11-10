@@ -19,21 +19,18 @@ class AppUser {
     required this.id,
     required this.name,
     required this.email,
-    required this.emailVerified,
     this.notificationPreferences = const {},
   });
 
   final String id;
   final String name;
   final String email;
-  final bool emailVerified;
   final Map<String, bool> notificationPreferences;
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
         id: json['id'].toString(),
         name: json['name']?.toString() ?? '',
         email: json['email']?.toString() ?? '',
-        emailVerified: json['emailVerified'] == true,
         notificationPreferences: (json['notificationPreferences'] as Map?)
                 ?.map((key, value) => MapEntry(key.toString(), value == true)) ??
             const {},
@@ -43,7 +40,6 @@ class AppUser {
         'id': id,
         'name': name,
         'email': email,
-        'emailVerified': emailVerified,
         'notificationPreferences': notificationPreferences,
       };
 }

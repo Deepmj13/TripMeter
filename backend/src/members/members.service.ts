@@ -319,12 +319,8 @@ export class MembersService {
     );
     return this.idempotency.execute(userId, idempotencyKey, requestHash, async (session) => {
       const user = await this.userModel.findById(userId).session(session).exec();
-      if (!user?.emailVerifiedAt) {
-        throw new AppError(
-          'AUTH_EMAIL_UNVERIFIED',
-          'Verify your email before claiming a membership',
-          403,
-        );
+      if (!user) {
+        throw AppError.notFound('TRIP_NOT_FOUND', 'Account not found');
       }
 
       const member = await this.memberModel

@@ -19,7 +19,6 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { VerifiedEmailGuard } from './auth/guards/verified-email.guard';
 import { UsersModule } from './users/users.module';
 import { TripsModule } from './trips/trips.module';
 import { MembersModule } from './members/members.module';
@@ -63,7 +62,6 @@ import { HealthModule } from './health/health.module';
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
-    { provide: APP_GUARD, useClass: VerifiedEmailGuard },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     {
       provide: APP_PIPE,

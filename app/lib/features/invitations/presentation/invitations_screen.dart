@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import '../../../app/app_services.dart';
 import '../../../core/database/app_database.dart';
 import '../../../shared/widgets/feedback.dart';
-import '../../../shared/widgets/sync_status_bar.dart';
 
 class InvitationsScreen extends ConsumerStatefulWidget {
   const InvitationsScreen({super.key});
@@ -112,7 +111,6 @@ class _InvitationsScreenState extends ConsumerState<InvitationsScreen> {
       ),
       body: Column(
         children: [
-          const SyncStatusBar(),
           Expanded(
             child: StreamBuilder<List<LocalInvitation>>(
               stream: services.invitations.watchInvitations(),

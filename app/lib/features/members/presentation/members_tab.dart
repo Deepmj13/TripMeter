@@ -34,8 +34,7 @@ class MembersTab extends ConsumerWidget {
                   final canClaim = member.memberKind == 'guest' &&
                       member.status == 'active' &&
                       member.emailNormalized != null &&
-                      member.emailNormalized!.toLowerCase() == myEmail &&
-                      services.session.user?.emailVerified == true;
+                      member.emailNormalized!.toLowerCase() == myEmail;
                   return _MemberTile(
                     member: member,
                     canManage: trip.isAdmin,

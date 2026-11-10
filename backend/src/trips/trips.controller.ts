@@ -11,7 +11,6 @@ import {
   AuthenticatedUser,
   CurrentUser,
   IdempotencyKey,
-  RequiresVerifiedEmail,
 } from '../common/decorators';
 import {
   CreateTripDto,
@@ -25,7 +24,6 @@ import { TripsService } from './trips.service';
 export class TripsController {
   constructor(private readonly tripsService: TripsService) {}
 
-  @RequiresVerifiedEmail()
   @Post()
   create(
     @CurrentUser() user: AuthenticatedUser,

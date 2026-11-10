@@ -36,21 +36,6 @@ class $LocalUserProfileTable extends LocalUserProfile
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _emailVerifiedMeta = const VerificationMeta(
-    'emailVerified',
-  );
-  @override
-  late final GeneratedColumn<bool> emailVerified = GeneratedColumn<bool>(
-    'email_verified',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("email_verified" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
   static const VerificationMeta _notificationPreferencesJsonMeta =
       const VerificationMeta('notificationPreferencesJson');
   @override
@@ -91,7 +76,6 @@ class $LocalUserProfileTable extends LocalUserProfile
     userId,
     name,
     email,
-    emailVerified,
     notificationPreferencesJson,
     serverSyncVersion,
     updatedAt,
@@ -131,15 +115,6 @@ class $LocalUserProfileTable extends LocalUserProfile
       );
     } else if (isInserting) {
       context.missing(_emailMeta);
-    }
-    if (data.containsKey('email_verified')) {
-      context.handle(
-        _emailVerifiedMeta,
-        emailVerified.isAcceptableOrUnknown(
-          data['email_verified']!,
-          _emailVerifiedMeta,
-        ),
-      );
     }
     if (data.containsKey('notification_preferences_json')) {
       context.handle(
@@ -188,10 +163,6 @@ class $LocalUserProfileTable extends LocalUserProfile
         DriftSqlType.string,
         data['${effectivePrefix}email'],
       )!,
-      emailVerified: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}email_verified'],
-      )!,
       notificationPreferencesJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notification_preferences_json'],
@@ -218,7 +189,6 @@ class LocalUserProfileData extends DataClass
   final String userId;
   final String name;
   final String email;
-  final bool emailVerified;
   final String notificationPreferencesJson;
   final int serverSyncVersion;
   final String updatedAt;
@@ -226,7 +196,6 @@ class LocalUserProfileData extends DataClass
     required this.userId,
     required this.name,
     required this.email,
-    required this.emailVerified,
     required this.notificationPreferencesJson,
     required this.serverSyncVersion,
     required this.updatedAt,
@@ -237,7 +206,6 @@ class LocalUserProfileData extends DataClass
     map['user_id'] = Variable<String>(userId);
     map['name'] = Variable<String>(name);
     map['email'] = Variable<String>(email);
-    map['email_verified'] = Variable<bool>(emailVerified);
     map['notification_preferences_json'] = Variable<String>(
       notificationPreferencesJson,
     );
@@ -251,7 +219,6 @@ class LocalUserProfileData extends DataClass
       userId: Value(userId),
       name: Value(name),
       email: Value(email),
-      emailVerified: Value(emailVerified),
       notificationPreferencesJson: Value(notificationPreferencesJson),
       serverSyncVersion: Value(serverSyncVersion),
       updatedAt: Value(updatedAt),
@@ -267,7 +234,6 @@ class LocalUserProfileData extends DataClass
       userId: serializer.fromJson<String>(json['userId']),
       name: serializer.fromJson<String>(json['name']),
       email: serializer.fromJson<String>(json['email']),
-      emailVerified: serializer.fromJson<bool>(json['emailVerified']),
       notificationPreferencesJson: serializer.fromJson<String>(
         json['notificationPreferencesJson'],
       ),
@@ -282,7 +248,6 @@ class LocalUserProfileData extends DataClass
       'userId': serializer.toJson<String>(userId),
       'name': serializer.toJson<String>(name),
       'email': serializer.toJson<String>(email),
-      'emailVerified': serializer.toJson<bool>(emailVerified),
       'notificationPreferencesJson': serializer.toJson<String>(
         notificationPreferencesJson,
       ),
@@ -295,7 +260,6 @@ class LocalUserProfileData extends DataClass
     String? userId,
     String? name,
     String? email,
-    bool? emailVerified,
     String? notificationPreferencesJson,
     int? serverSyncVersion,
     String? updatedAt,
@@ -303,7 +267,6 @@ class LocalUserProfileData extends DataClass
     userId: userId ?? this.userId,
     name: name ?? this.name,
     email: email ?? this.email,
-    emailVerified: emailVerified ?? this.emailVerified,
     notificationPreferencesJson:
         notificationPreferencesJson ?? this.notificationPreferencesJson,
     serverSyncVersion: serverSyncVersion ?? this.serverSyncVersion,
@@ -314,9 +277,6 @@ class LocalUserProfileData extends DataClass
       userId: data.userId.present ? data.userId.value : this.userId,
       name: data.name.present ? data.name.value : this.name,
       email: data.email.present ? data.email.value : this.email,
-      emailVerified: data.emailVerified.present
-          ? data.emailVerified.value
-          : this.emailVerified,
       notificationPreferencesJson: data.notificationPreferencesJson.present
           ? data.notificationPreferencesJson.value
           : this.notificationPreferencesJson,
@@ -333,7 +293,6 @@ class LocalUserProfileData extends DataClass
           ..write('userId: $userId, ')
           ..write('name: $name, ')
           ..write('email: $email, ')
-          ..write('emailVerified: $emailVerified, ')
           ..write('notificationPreferencesJson: $notificationPreferencesJson, ')
           ..write('serverSyncVersion: $serverSyncVersion, ')
           ..write('updatedAt: $updatedAt')
@@ -346,7 +305,6 @@ class LocalUserProfileData extends DataClass
     userId,
     name,
     email,
-    emailVerified,
     notificationPreferencesJson,
     serverSyncVersion,
     updatedAt,
@@ -358,7 +316,6 @@ class LocalUserProfileData extends DataClass
           other.userId == this.userId &&
           other.name == this.name &&
           other.email == this.email &&
-          other.emailVerified == this.emailVerified &&
           other.notificationPreferencesJson ==
               this.notificationPreferencesJson &&
           other.serverSyncVersion == this.serverSyncVersion &&
@@ -369,7 +326,6 @@ class LocalUserProfileCompanion extends UpdateCompanion<LocalUserProfileData> {
   final Value<String> userId;
   final Value<String> name;
   final Value<String> email;
-  final Value<bool> emailVerified;
   final Value<String> notificationPreferencesJson;
   final Value<int> serverSyncVersion;
   final Value<String> updatedAt;
@@ -378,7 +334,6 @@ class LocalUserProfileCompanion extends UpdateCompanion<LocalUserProfileData> {
     this.userId = const Value.absent(),
     this.name = const Value.absent(),
     this.email = const Value.absent(),
-    this.emailVerified = const Value.absent(),
     this.notificationPreferencesJson = const Value.absent(),
     this.serverSyncVersion = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -388,7 +343,6 @@ class LocalUserProfileCompanion extends UpdateCompanion<LocalUserProfileData> {
     required String userId,
     required String name,
     required String email,
-    this.emailVerified = const Value.absent(),
     this.notificationPreferencesJson = const Value.absent(),
     this.serverSyncVersion = const Value.absent(),
     required String updatedAt,
@@ -401,7 +355,6 @@ class LocalUserProfileCompanion extends UpdateCompanion<LocalUserProfileData> {
     Expression<String>? userId,
     Expression<String>? name,
     Expression<String>? email,
-    Expression<bool>? emailVerified,
     Expression<String>? notificationPreferencesJson,
     Expression<int>? serverSyncVersion,
     Expression<String>? updatedAt,
@@ -411,7 +364,6 @@ class LocalUserProfileCompanion extends UpdateCompanion<LocalUserProfileData> {
       if (userId != null) 'user_id': userId,
       if (name != null) 'name': name,
       if (email != null) 'email': email,
-      if (emailVerified != null) 'email_verified': emailVerified,
       if (notificationPreferencesJson != null)
         'notification_preferences_json': notificationPreferencesJson,
       if (serverSyncVersion != null) 'server_sync_version': serverSyncVersion,
@@ -424,7 +376,6 @@ class LocalUserProfileCompanion extends UpdateCompanion<LocalUserProfileData> {
     Value<String>? userId,
     Value<String>? name,
     Value<String>? email,
-    Value<bool>? emailVerified,
     Value<String>? notificationPreferencesJson,
     Value<int>? serverSyncVersion,
     Value<String>? updatedAt,
@@ -434,7 +385,6 @@ class LocalUserProfileCompanion extends UpdateCompanion<LocalUserProfileData> {
       userId: userId ?? this.userId,
       name: name ?? this.name,
       email: email ?? this.email,
-      emailVerified: emailVerified ?? this.emailVerified,
       notificationPreferencesJson:
           notificationPreferencesJson ?? this.notificationPreferencesJson,
       serverSyncVersion: serverSyncVersion ?? this.serverSyncVersion,
@@ -454,9 +404,6 @@ class LocalUserProfileCompanion extends UpdateCompanion<LocalUserProfileData> {
     }
     if (email.present) {
       map['email'] = Variable<String>(email.value);
-    }
-    if (emailVerified.present) {
-      map['email_verified'] = Variable<bool>(emailVerified.value);
     }
     if (notificationPreferencesJson.present) {
       map['notification_preferences_json'] = Variable<String>(
@@ -481,7 +428,6 @@ class LocalUserProfileCompanion extends UpdateCompanion<LocalUserProfileData> {
           ..write('userId: $userId, ')
           ..write('name: $name, ')
           ..write('email: $email, ')
-          ..write('emailVerified: $emailVerified, ')
           ..write('notificationPreferencesJson: $notificationPreferencesJson, ')
           ..write('serverSyncVersion: $serverSyncVersion, ')
           ..write('updatedAt: $updatedAt, ')
@@ -8108,7 +8054,6 @@ typedef $$LocalUserProfileTableCreateCompanionBuilder =
       required String userId,
       required String name,
       required String email,
-      Value<bool> emailVerified,
       Value<String> notificationPreferencesJson,
       Value<int> serverSyncVersion,
       required String updatedAt,
@@ -8119,7 +8064,6 @@ typedef $$LocalUserProfileTableUpdateCompanionBuilder =
       Value<String> userId,
       Value<String> name,
       Value<String> email,
-      Value<bool> emailVerified,
       Value<String> notificationPreferencesJson,
       Value<int> serverSyncVersion,
       Value<String> updatedAt,
@@ -8147,11 +8091,6 @@ class $$LocalUserProfileTableFilterComposer
 
   ColumnFilters<String> get email => $composableBuilder(
     column: $table.email,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get emailVerified => $composableBuilder(
-    column: $table.emailVerified,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8195,11 +8134,6 @@ class $$LocalUserProfileTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get emailVerified => $composableBuilder(
-    column: $table.emailVerified,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get notificationPreferencesJson => $composableBuilder(
     column: $table.notificationPreferencesJson,
     builder: (column) => ColumnOrderings(column),
@@ -8233,11 +8167,6 @@ class $$LocalUserProfileTableAnnotationComposer
 
   GeneratedColumn<String> get email =>
       $composableBuilder(column: $table.email, builder: (column) => column);
-
-  GeneratedColumn<bool> get emailVerified => $composableBuilder(
-    column: $table.emailVerified,
-    builder: (column) => column,
-  );
 
   GeneratedColumn<String> get notificationPreferencesJson => $composableBuilder(
     column: $table.notificationPreferencesJson,
@@ -8293,7 +8222,6 @@ class $$LocalUserProfileTableTableManager
                 Value<String> userId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> email = const Value.absent(),
-                Value<bool> emailVerified = const Value.absent(),
                 Value<String> notificationPreferencesJson =
                     const Value.absent(),
                 Value<int> serverSyncVersion = const Value.absent(),
@@ -8303,7 +8231,6 @@ class $$LocalUserProfileTableTableManager
                 userId: userId,
                 name: name,
                 email: email,
-                emailVerified: emailVerified,
                 notificationPreferencesJson: notificationPreferencesJson,
                 serverSyncVersion: serverSyncVersion,
                 updatedAt: updatedAt,
@@ -8314,7 +8241,6 @@ class $$LocalUserProfileTableTableManager
                 required String userId,
                 required String name,
                 required String email,
-                Value<bool> emailVerified = const Value.absent(),
                 Value<String> notificationPreferencesJson =
                     const Value.absent(),
                 Value<int> serverSyncVersion = const Value.absent(),
@@ -8324,7 +8250,6 @@ class $$LocalUserProfileTableTableManager
                 userId: userId,
                 name: name,
                 email: email,
-                emailVerified: emailVerified,
                 notificationPreferencesJson: notificationPreferencesJson,
                 serverSyncVersion: serverSyncVersion,
                 updatedAt: updatedAt,

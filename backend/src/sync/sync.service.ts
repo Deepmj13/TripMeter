@@ -101,7 +101,6 @@ export class SyncService {
         id: user._id,
         name: user.name,
         email: user.email,
-        emailVerified: Boolean(user.emailVerifiedAt),
         notificationPreferences: user.notificationPreferences,
       },
       trips: trips.map((trip) => ({

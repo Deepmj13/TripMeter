@@ -16,7 +16,6 @@ export function validateEnvironment(config: Record<string, unknown>): Record<str
   const numericKeys = [
     'PORT',
     'REFRESH_TOKEN_TTL_DAYS',
-    'EMAIL_VERIFICATION_TTL_HOURS',
     'PASSWORD_RESET_TTL_MINUTES',
     'INVITATION_TTL_DAYS',
     'IDEMPOTENCY_RETENTION_DAYS',

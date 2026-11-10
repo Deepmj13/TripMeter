@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../auth/session_manager.dart';
 
-/// Routes incoming invitation, email-verification and password-reset links.
+/// Routes incoming invitation and password-reset links.
 ///
 /// An invitation token that arrives before sign-in is kept in secure storage
 /// until the user authenticates, so it survives registration and app restarts.
@@ -70,8 +70,6 @@ class DeepLinkService {
     final queryToken = uri.queryParameters['token'];
     final reset = segments.contains('reset-password') ||
         segments.contains('reset_password');
-    final verify = segments.contains('verify-email') ||
-        segments.contains('verify_email');
     final invite = segments.contains('invite') ||
         segments.contains('invitation') ||
         segments.contains('invitations');
@@ -79,11 +77,6 @@ class DeepLinkService {
     if (reset) {
       final token = queryToken ?? tokenAfter('reset-password') ?? tokenAfter('reset_password');
       router.go(_path('/reset-password', token));
-      return;
-    }
-    if (verify) {
-      final token = queryToken ?? tokenAfter('verify-email') ?? tokenAfter('verify_email');
-      router.go(_path('/verify-email', token));
       return;
     }
     if (invite || queryToken != null) {

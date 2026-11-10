@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../app/app_services.dart';
 import '../../../shared/models/models.dart';
 import '../../../shared/widgets/feedback.dart';
-import '../../../shared/widgets/sync_status_bar.dart';
 
 const _notificationLabels = <String, String>{
   'push': 'Push notifications',
@@ -263,194 +262,166 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final services = ref.watch(appServicesProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
-      body: Column(
-        children: [
-          const SyncStatusBar(),
-          Expanded(
-            child: ListenableBuilder(
-              listenable: services.session,
-              builder: (context, _) {
-                final user = services.session.user;
-                if (user == null) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                return ListView(
-                  padding: const EdgeInsets.only(bottom: 32),
+      body: ListenableBuilder(
+        listenable: services.session,
+        builder: (context, _) {
+          final user = services.session.user;
+          if (user == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 32),
+            children: [
+              _header(context, user),
+              _section(
+                context,
+                'Account',
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _name,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(
+                          labelText: 'Name',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                        validator: (value) =>
+                            (value ?? '').trim().isEmpty ? 'Enter your name' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: Icon(Icons.mail_outline),
+                        ),
+                        validator: (value) => (value ?? '').contains('@')
+                            ? null
+                            : 'Enter a valid email address',
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _currentPassword,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Current password (to change email)',
+                          prefixIcon: Icon(Icons.lock_outline),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: BusyButton(
+                          label: 'Save profile',
+                          busy: _saving,
+                          onPressed: _saveProfile,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              _section(
+                context,
+                'Notifications',
+                Column(
                   children: [
-                    _header(context, user),
-                    if (!user.emailVerified)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Card(
-                          color: Theme.of(context).colorScheme.errorContainer,
-                          child: ListTile(
-                            leading: const Icon(Icons.mark_email_unread_outlined),
-                            title: const Text('Email not verified'),
-                            subtitle: const Text(
-                              'Verify your email to create trips, invite members and write changes.',
-                            ),
-                            trailing: TextButton(
-                              onPressed: () => context.push('/verify-email'),
-                              child: const Text('Verify'),
-                            ),
-                          ),
+                    for (final entry in _notificationLabels.entries)
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(entry.value),
+                        value: _preferences[entry.key] ?? true,
+                        onChanged: (value) => setState(
+                          () => _preferences[entry.key] = value,
                         ),
                       ),
-                    _section(
-                      context,
-                      'Account',
-                      Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            TextFormField(
-                              controller: _name,
-                              textCapitalization: TextCapitalization.words,
-                              decoration: const InputDecoration(
-                                labelText: 'Name',
-                                prefixIcon: Icon(Icons.person_outline),
-                              ),
-                              validator: (value) =>
-                                  (value ?? '').trim().isEmpty
-                                      ? 'Enter your name'
-                                      : null,
-                            ),
-                            const SizedBox(height: 12),
-                            TextFormField(
-                              controller: _email,
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(
-                                labelText: 'Email',
-                                prefixIcon: Icon(Icons.mail_outline),
-                              ),
-                              validator: (value) =>
-                                  (value ?? '').contains('@')
-                                      ? null
-                                      : 'Enter a valid email address',
-                            ),
-                            const SizedBox(height: 12),
-                            TextFormField(
-                              controller: _currentPassword,
-                              obscureText: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Current password (to change email)',
-                                prefixIcon: Icon(Icons.lock_outline),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: double.infinity,
-                              child: BusyButton(
-                                label: 'Save profile',
-                                busy: _saving,
-                                onPressed: _saveProfile,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    _section(
-                      context,
-                      'Notifications',
-                      Column(
-                        children: [
-                          for (final entry in _notificationLabels.entries)
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(entry.value),
-                              value: _preferences[entry.key] ?? true,
-                              onChanged: (value) => setState(
-                                () => _preferences[entry.key] = value,
-                              ),
-                            ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              'Saved with your profile.',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _section(
-                      context,
-                      'Security',
-                      Column(
-                        children: [
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.password),
-                            title: const Text('Change password'),
-                            trailing: _changingPassword
-                                ? const SizedBox.square(
-                                    dimension: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.chevron_right),
-                            onTap: _changingPassword ? null : _changePassword,
-                          ),
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.devices_outlined),
-                            title: const Text('Signed-in devices'),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () => context.push('/profile/sessions'),
-                          ),
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.mail_outline),
-                            title: const Text('Invitations'),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () => context.push('/invitations'),
-                          ),
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.sync_problem),
-                            title: const Text('Sync conflicts'),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () => context.push('/conflicts'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _section(
-                      context,
-                      'Session',
-                      Column(
-                        children: [
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.logout),
-                            title: const Text('Sign out'),
-                            onTap: _logout,
-                          ),
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: Icon(
-                              Icons.delete_forever,
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                            title: Text(
-                              'Delete account',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
-                              ),
-                            ),
-                            onTap: _saving ? null : _deleteAccount,
-                          ),
-                        ],
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        'Saved with your profile.',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
                   ],
-                );
-              },
-            ),
-          ),
-        ],
+                ),
+              ),
+              _section(
+                context,
+                'Security',
+                Column(
+                  children: [
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.password),
+                      title: const Text('Change password'),
+                      trailing: _changingPassword
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.chevron_right),
+                      onTap: _changingPassword ? null : _changePassword,
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.devices_outlined),
+                      title: const Text('Signed-in devices'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/profile/sessions'),
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.mail_outline),
+                      title: const Text('Invitations'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/invitations'),
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.sync_problem),
+                      title: const Text('Sync conflicts'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/conflicts'),
+                    ),
+                  ],
+                ),
+              ),
+              _section(
+                context,
+                'Session',
+                Column(
+                  children: [
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.logout),
+                      title: const Text('Sign out'),
+                      onTap: _logout,
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        Icons.delete_forever,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      title: Text(
+                        'Delete account',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                      onTap: _saving ? null : _deleteAccount,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -481,21 +452,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (user.emailVerified)
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.verified,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Verified',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
               ],
             ),
           ),

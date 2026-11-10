@@ -5,7 +5,6 @@ class LocalUserProfile extends Table {
   TextColumn get userId => text()();
   TextColumn get name => text()();
   TextColumn get email => text()();
-  BoolColumn get emailVerified => boolean().withDefault(const Constant(false))();
   TextColumn get notificationPreferencesJson =>
       text().withDefault(const Constant('{}'))();
   IntColumn get serverSyncVersion => integer().withDefault(const Constant(0))();

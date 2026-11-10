@@ -37,7 +37,7 @@ The app must remain useful when a traveller has unreliable connectivity. Cached 
 Included:
 
 - Email/password registration and login.
-- Email verification and password reset.
+- Password reset.
 - Trip creation, editing, listing and archiving.
 - Registered and guest trip participants.
 - Email-based trip invitations.
@@ -122,9 +122,9 @@ A guest's displayed name is not proof that the guest personally entered or confi
 
 A guest may later become a registered member. Do not create a second member automatically. Provide a controlled claim/link flow:
 
-1. The guest registers and verifies their email address.
+1. The guest registers an account.
 2. If the guest member record has that same normalized email, the account can request to claim the existing membership.
-3. The server verifies the email and links `userId` to the existing member record, preserving its member ID and expense history.
+3. The server matches the account email and links `userId` to the existing member record, preserving its member ID and expense history.
 4. If the guest member has no email, an owner/admin must send an invitation to the new account email and approve or initiate the link.
 5. Prevent one user from being linked to two membership records in the same trip.
 
@@ -143,7 +143,6 @@ These values are constants in the backend and client. They are not left to indiv
 | `SYNC_BATCH_SIZE` | `100` | Events per pull |
 | `ACCESS_TOKEN_TTL` | `15m` | Short-lived bearer token |
 | `REFRESH_TOKEN_TTL_DAYS` | `30` | Rotating opaque token |
-| `EMAIL_VERIFICATION_TTL_HOURS` | `24` | One-time token |
 | `PASSWORD_RESET_TTL_MINUTES` | `30` | One-time token |
 | `INVITATION_TTL_DAYS` | `7` | One-time token |
 | `IDEMPOTENCY_RETENTION_DAYS` | `30` | Must exceed the maximum realistic offline retry window |
@@ -294,12 +293,12 @@ Keep trips, members, invitations, expenses, settlements and events as separate c
 | `tripEvents` | Append-only synchronization events |
 | `refreshTokens` | Hashed refresh-token sessions with rotation families |
 | `idempotencyRecords` | Deduplication of retried write requests |
-| `userTokens` | Hashed email-verification and password-reset tokens |
+| `userTokens` | Hashed password-reset tokens |
 | `userEvents` | Per-user change feed for trip access and invitations |
 | `deviceTokens` | FCM device registrations per user and device |
 | `notificationOutbox` | Durable email/push dispatch records |
 
-`userEvents` is the user-scoped companion to `tripEvents`. It tells a device that it gained or lost access to a trip, or that an invitation changed, without forcing the client to poll every trip. `userTokens` keeps verification and reset secrets out of the `users` document and out of logs.
+`userEvents` is the user-scoped companion to `tripEvents`. It tells a device that it gained or lost access to a trip, or that an invitation changed, without forcing the client to poll every trip. `userTokens` keeps reset secrets out of the `users` document and out of logs.
 
 Use UUID strings for document `_id` values. This allows Flutter to create stable IDs while offline and send those same IDs to the backend later. The backend must still validate every ID and relationship; a client-generated UUID is an identifier, not an authorization mechanism.
 
@@ -313,7 +312,6 @@ Use UUID strings for document `_id` values. This allows Flutter to create stable
   "emailNormalized": "deep@example.com",
   "passwordHash": "<password-hash>",
   "passwordChangedAt": "2026-11-04T12:00:00.000Z",
-  "emailVerifiedAt": "2026-11-04T12:00:00.000Z",
   "notificationPreferences": {
     "push": true,
     "email": true,
@@ -414,7 +412,7 @@ Rules:
 - A trip may have at most `MAX_TRIP_MEMBERS` (200) non-removed memberships. Reject further additions.
 - `emailNormalized` may be null for guests. Multiple guests without email must be allowed in the same trip.
 - A guest's `displayName` is a label, not proof of identity. The expense and settlement records must retain the difference between `paidByMemberId` and the acting user.
-- For an account member linked to a user, `emailNormalized` mirrors the verified account email. When the account email changes, update the linked member records and emit `member.updated` events in the same transaction.
+- For an account member linked to a user, `emailNormalized` mirrors the account email. When the account email changes, update the linked member records and emit `member.updated` events in the same transaction.
 - `emailNormalized` is privileged: return it only to the owner, admins and the account member themselves. Never include it in trip change-feed payloads or expose it to ordinary members.
 
 Indexes:
@@ -451,14 +449,14 @@ Allowed states: `pending`, `accepted`, `declined`, `revoked`, `expired`.
 
 Rules:
 
-- Accept by token (deep link) or by invitation ID for an authenticated account whose verified normalized email matches the invitation.
+- Accept by token (deep link) or by invitation ID for an authenticated account whose normalized email matches the invitation.
 - Only one pending invitation may exist per trip and normalized email. Inviting the same email again resends and rotates the existing invitation instead of creating a duplicate.
 - If the email already belongs to an active member of the trip, reject the invitation with a conflict instead of creating a second membership.
 - If a member record with the same `emailNormalized` already exists in the trip, including a guest, left or removed record, the invitation must attach to that existing member and upgrade or reactivate it on acceptance instead of creating a second membership record.
 - Resending rotates the token, invalidates the previous token, and keeps the same invitation/member identity.
 - Revoking, declining or expiring an invitation must also cancel the provisional `invited` membership so the trip never keeps a phantom active member.
 - The token is single-use. Expiry is checked on acceptance; a TTL index is cleanup only.
-- If the invitee does not have an account, the deep-link token must survive registration and email verification. The client stores it securely until acceptance.
+- If the invitee does not have an account, the deep-link token must survive registration. The client stores it securely until acceptance.
 - Acceptance writes the invitation update, membership link, `userEvent`, `tripEvent` and notification outbox record in one transaction.
 
 Indexes:
@@ -651,7 +649,7 @@ Rules:
 - `sequence` starts at `1` and is contiguous per trip. The trip's `syncVersion` and the event sequence are allocated in the same transaction.
 - Invitation lifecycle changes are **not** written to `tripEvents`, because they would leak invitee email addresses to every trip member. They are written to `userEvents` and, where appropriate, `member.updated`.
 - Member event payloads omit `emailNormalized`. Member email addresses are privileged data and are never written to `tripEvents`.
-- Do not put password hashes, refresh tokens, invitation secrets, verification tokens or other credentials in event payloads.
+- Do not put password hashes, refresh tokens, invitation secrets, reset tokens or other credentials in event payloads.
 - Retain events for at least 90 days or 100,000 events per trip, whichever is greater. If a device presents a cursor older than the retained window, return `410 CURSOR_EXPIRED` and require a snapshot resync.
 - Event consumers must treat duplicate delivery as a no-op and must reject regressions where the incoming `version` is older than the locally applied version.
 
@@ -727,7 +725,7 @@ Rules:
 {
   "_id": "user-token-uuid",
   "userId": "user-uuid",
-  "type": "email_verification",
+  "type": "password_reset",
   "tokenHash": "<sha256-of-random-token>",
   "expiresAt": "2026-11-05T12:00:00.000Z",
   "usedAt": null,
@@ -736,7 +734,7 @@ Rules:
 }
 ```
 
-Allowed `type` values: `email_verification`, `password_reset`.
+Allowed `type` values: `password_reset`.
 
 Indexes:
 
@@ -748,7 +746,7 @@ Rules:
 - Issue a new token only after marking the previous unused token of the same type as `revokedAt`.
 - Tokens are single-use and hashed at rest. Both `usedAt` and `revokedAt` block reuse.
 - Password reset also revokes all refresh-token families and increments `users.passwordChangedAt`.
-- Verification tokens are checked for expiry and `usedAt` on use; TTL indexes are cleanup only.
+- Password-reset tokens are checked for expiry and `usedAt` on use; TTL indexes are cleanup only.
 
 #### 4.9.4 `userEvents`
 
@@ -778,7 +776,7 @@ Event types: `trip.access.granted`, `trip.access.revoked`, `trip.membership.chan
 Rules:
 
 - `users.syncVersion` is incremented in the same transaction as the `userEvents` insert and supplies `sequence`.
-- These events never contain invitation tokens, verification tokens or another member's email address.
+- These events never contain invitation tokens, reset tokens or another member's email address.
 - Invitation events carry the invitation ID, trip ID, role and status only; the client fetches invitation details through `/invitations` if it needs more.
 - A `trip.access.granted` event tells the client to add the trip to its local cache and pull that trip's snapshot and change feed.
 - A revoked-access event must be delivered before the device is allowed to push any further outbox operations for that trip.
@@ -1044,8 +1042,6 @@ Stable error codes (non-exhaustive):
 | POST | `/auth/login` | Login |
 | POST | `/auth/refresh` | Rotate refresh token and issue access token |
 | POST | `/auth/logout` | Revoke current refresh session |
-| POST | `/auth/verify-email` | Verify email using a one-time token/code |
-| POST | `/auth/resend-verification` | Issue a new verification token |
 | POST | `/auth/forgot-password` | Request password reset |
 | POST | `/auth/reset-password` | Complete password reset |
 | POST | `/auth/change-password` | Change password and revoke other sessions |
@@ -1058,9 +1054,9 @@ Stable error codes (non-exhaustive):
 
 Authentication rules:
 
-- An account may log in before email verification, but trip participation, invitation acceptance and invitation sending require a verified email. Protected endpoints that require verification return `403 AUTH_EMAIL_UNVERIFIED`.
+- Registration immediately creates a fully usable account; there is no email-verification step.
 - `forgot-password` always returns the same success response to prevent account enumeration.
-- Changing email requires the current password, must respect the unique normalized email constraint, sets `emailVerifiedAt` to null and starts a new verification flow. The old email cannot be used to accept invitations after the change. Linked account-member records are updated and `member.updated` events are emitted for each affected trip. If the new email collides with another member in a trip, reject the change with `409 EMAIL_IN_USE`.
+- Changing email requires the current password and must respect the unique normalized email constraint. The old email cannot be used to accept invitations after the change. Linked account-member records are updated and `member.updated` events are emitted for each affected trip. If the new email collides with another member in a trip, reject the change with `409 EMAIL_IN_USE`.
 - `sessionId` in the session endpoints is the refresh-token `familyId`, never the raw token or token hash. Session listings expose device label, platform, user agent, issued/last-used times and expiry only.
 - A successful password reset or change revokes every refresh-token family except the current session when applicable.
 - `DELETE /users/me` requires the current password or a fresh re-authentication step. The user must transfer ownership of any trip that has another active member; a trip where the user is the sole active member becomes an inaccessible retained record. Deletion anonymizes the profile, clears linked member emails, revokes pending invitations and sessions, emits `member.updated` trip events and `account.deleted` user events, and retains financial records under a neutral display name.
@@ -1099,7 +1095,7 @@ Trip rules:
 | PATCH | `/trips/:tripId/members/:memberId` | Update display name/details |
 | PATCH | `/trips/:tripId/members/:memberId/role` | Change role |
 | POST | `/trips/:tripId/members/:memberId/remove` | Remove/deactivate member |
-| POST | `/trips/:tripId/members/:memberId/claim` | Link verified account to guest member |
+| POST | `/trips/:tripId/members/:memberId/claim` | Link account to guest member |
 
 Example guest request:
 
@@ -1113,12 +1109,12 @@ Example guest request:
 Member rules:
 
 - Adding a guest emits a `member.added` trip event and increments the trip sync version.
-- A guest may have no email. A guest with an email may later be claimed by the matching verified account.
+- A guest may have no email. A guest with an email may later be claimed by the matching account.
 - Only active members can be selected for new expenses or settlements.
 - Removing a member changes `status` to `removed`; it never deletes the member or rewrites historical expenses. Removing a member with an outstanding balance is allowed but the client must show a warning.
 - The owner cannot be removed. Transfer ownership first.
 - A user cannot have two membership records in the same trip; reuse and reactivate the historical record.
-- Guest claim requires the authenticated verified account whose email matches the member email. If the guest has no email, an owner/admin must attach an email and send an invitation first; a claim cannot be self-asserted.
+- Guest claim requires the authenticated account whose email matches the member email. If the guest has no email, an owner/admin must attach an email and send an invitation first; a claim cannot be self-asserted.
 
 ### 6.4 Invitations
 
@@ -1141,7 +1137,7 @@ Example:
 }
 ```
 
-An invitation creates a pending account membership and a hashed, expiring token. Acceptance requires an authenticated account whose verified normalized email matches the invited email. The backend must verify expiry, status and membership uniqueness before linking the user to the member record.
+An invitation creates a pending account membership and a hashed, expiring token. Acceptance requires an authenticated account whose normalized email matches the invited email. The backend must verify expiry, status and membership uniqueness before linking the user to the member record.
 
 Acceptance rules:
 
@@ -2247,9 +2243,8 @@ Keep an obvious Add Expense action accessible from the trip overview and expense
 | Splash/bootstrap | Load local session and database |
 | Login | Email and password |
 | Registration | Name, email and password |
-| Email verification | Verify account email |
 | Forgot password | Reset flow |
-| Home | Trips, invitations and sync status |
+| Home | Trips and invitations |
 | Create trip | Name, destination, dates and currency |
 | Trip overview | Total spending, member count, categories and recent activity |
 | Members | Add guest, invite by email, role/status management, transfer ownership, leave trip |
@@ -2265,7 +2260,6 @@ Keep an obvious Add Expense action accessible from the trip overview and expense
 | Profile/settings | Account details, logout, notification preferences |
 | Security/sessions | Active devices, revoke session, change password, delete account |
 | Sync issues | Pending operations, failed operations and conflicts that need attention |
-| Offline mode banner | Clearly indicates cached data and queued writes |
 
 ### 11.3 Expense form UX
 
@@ -2345,8 +2339,8 @@ Rules:
 - Short-lived access tokens.
 - Rotating refresh tokens with server-side revocation and reuse detection.
 - Store refresh tokens and deep-link invitation tokens using Flutter secure storage.
-- Verify email ownership before accepting an invitation or joining a trip.
-- Random, expiring, single-use invitation, verification and reset tokens; store hashes only.
+- Match account email ownership before accepting an invitation or joining a trip.
+- Random, expiring, single-use invitation and reset tokens; store hashes only.
 - Generic responses for login and forgot-password to prevent account enumeration.
 - DTO validation and strict property allowlists (`whitelist`, `forbidNonWhitelisted`).
 - Request size limits and maximum array lengths on every write endpoint.
@@ -2375,7 +2369,7 @@ This is important for auditability and dispute resolution.
 
 Guest claim rules:
 
-- A claim requires a verified account whose normalized email matches the guest's stored email.
+- A claim requires an authenticated account whose normalized email matches the guest's stored email.
 - If the guest has no email, an owner/admin must first attach an email and send an invitation; the claim cannot be self-asserted.
 - Claiming preserves the existing member ID and expense history, and must not create a second membership.
 - Reject a claim if the user already has a membership record in the same trip.
@@ -2413,7 +2407,7 @@ Use property-based/randomized tests to generate many groups, expenses and alloca
 
 - Create trip and owner member in one transaction.
 - Add guest and account member.
-- Create invitation and accept with correct verified email.
+- Create invitation and accept with the matching email.
 - Reject expired/revoked/reused invitation.
 - Create expense with embedded splits.
 - Reject mismatched split total.
@@ -2431,7 +2425,7 @@ Use property-based/randomized tests to generate many groups, expenses and alloca
 - Verify owner transfer and the owner-cannot-leave rule.
 - Verify account deletion anonymizes profile data and revokes sessions.
 - Verify account deletion requires ownership transfer when other active members exist, and that sole-member trips become inaccessible.
-- Verify email change resets verification and cannot reuse the old email for invitation acceptance.
+- Verify email change cannot reuse the old email for invitation acceptance.
 - Verify every trip-scoped endpoint enforces membership.
 - Verify user-level events are emitted for access grants, invitations and revocations.
 - Verify `410 CURSOR_EXPIRED` and the snapshot resync flow.
@@ -2477,13 +2471,12 @@ Use property-based/randomized tests to generate many groups, expenses and alloca
 - Member attempts to access another trip's expense ID.
 - Guest attempts to authenticate.
 - Removed member attempts a new write.
-- Unverified account attempts invitation acceptance.
 - Invitation token replay.
 - Unauthorized role changes.
 - Expense split contains a member from a different trip.
 - Settlement uses unrelated payer/receiver IDs.
 - Refresh token replay after rotation revokes the whole session family.
-- Reused invitation, verification or reset token is rejected.
+- Reused invitation or reset token is rejected.
 - Password reset invalidates other sessions.
 - Account enumeration is not possible through login or forgot-password.
 
@@ -2526,9 +2519,9 @@ Deliverable: Both apps start, a local test record persists, the API contract is 
 
 ### Phase 2 — End-to-end vertical slice
 
-- Register, verify email, login, refresh, logout.
+- Register, login, refresh, logout.
 - Create trip and owner membership atomically.
-- Add one guest and link one pre-existing verified account as a member through the minimal invitation accept path.
+- Add one guest and link one pre-existing account as a member through the minimal invitation accept path.
 - Create an equal-split expense.
 - Calculate balances and assert the zero-sum invariant.
 - Save the local expense, splits and outbox operation in one SQLite transaction.
@@ -2639,7 +2632,6 @@ MONGODB_READ_PREFERENCE=primary
 JWT_ACCESS_SECRET=<strong-random-secret>
 JWT_ACCESS_TTL=15m
 REFRESH_TOKEN_TTL_DAYS=30
-EMAIL_VERIFICATION_TTL_HOURS=24
 PASSWORD_RESET_TTL_MINUTES=30
 INVITATION_TTL_DAYS=7
 IDEMPOTENCY_RETENTION_DAYS=30
@@ -2753,10 +2745,10 @@ The MVP is ready for controlled public testing only when all of the following ar
 
 ### Product functionality
 
-- A user can register, verify email and log in.
+- A user can register and log in.
 - A user can create multiple trips.
 - A trip owner can add guests and invite people by email.
-- An invited person can accept using the verified invited email, by ID or deep-link token.
+- An invited person can accept using the invited email, by ID or deep-link token.
 - A user can see only trips they are authorized to access.
 - Authorized members can create equal and custom expenses.
 - A guest can be recorded as payer or split participant.
@@ -2786,7 +2778,7 @@ The MVP is ready for controlled public testing only when all of the following ar
 
 - Server validates every financial invariant, amount cap and participant cap.
 - Every trip-scoped endpoint enforces membership and role permissions.
-- Invitations, verification and reset tokens are secure, expiring and single-use.
+- Invitations and reset tokens are secure, expiring and single-use.
 - Refresh-token rotation detects reuse and revokes the session family.
 - Idempotency handles concurrent retries, not just sequential retries.
 - MongoDB transaction tests run against a replica set.
@@ -2804,7 +2796,7 @@ The MVP is ready for controlled public testing only when all of the following ar
 
 Build this complete flow before expanding the feature set:
 
-1. Register, verify email and log in.
+1. Register and log in.
 2. Create a trip.
 3. Add one registered member and one guest.
 4. Add a ₹500 expense paid by the owner.

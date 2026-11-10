@@ -36,14 +36,6 @@ describeWithMongo('TripMeter API (e2e)', () => {
       accessToken: string;
       user: { id: string };
     };
-
-    // The raw verification token is only delivered through the notification
-    // outbox. Marking the account verified keeps the test focused on the
-    // collaborative write path rather than the email provider.
-    await connection.collection<{ _id: string }>('users').updateOne(
-      { _id: session.user.id },
-      { $set: { emailVerifiedAt: new Date() } },
-    );
     return session;
   }
 
@@ -196,20 +188,20 @@ describeWithMongo('TripMeter API (e2e)', () => {
     expect(updated.body.data.title).toBe('Dinner (updated)');
   });
 
-  it('rejects writes before the email is verified', async () => {
-    const email = `unverified-${randomUUID()}@example.com`;
+  it('allows trip creation immediately after registration', async () => {
+    const email = `fresh-${randomUUID()}@example.com`;
     const response = await request(server())
       .post('/v1/auth/register')
-      .send({ name: 'Unverified', email, password: 'correct horse battery' })
+      .send({ name: 'Fresh', email, password: 'correct horse battery' })
       .expect(201);
     const token = response.body.data.accessToken as string;
 
-    const denied = await request(server())
+    const created = await request(server())
       .post('/v1/trips')
       .set(auth(token))
       .set('Idempotency-Key', randomUUID())
-      .send({ name: 'Should not exist' })
-      .expect(403);
-    expect(denied.body.error.code).toBe('AUTH_EMAIL_UNVERIFIED');
+      .send({ name: 'Immediate access' })
+      .expect(201);
+    expect(created.body.data.trip.name).toBe('Immediate access');
   });
 });

@@ -29,7 +29,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -60,6 +60,13 @@ class AppDatabase extends _$AppDatabase {
             'ON sync_conflicts(trip_id, resolved_at)',
           );
         },
+        onUpgrade: (migrator, from, to) async {
+          if (from < 2) {
+            // Email verification was removed from the product; drop the
+            // cached flag from existing installs.
+            await migrator.dropColumn(localUserProfile, 'email_verified');
+          }
+        },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },
@@ -73,7 +80,6 @@ class AppDatabase extends _$AppDatabase {
         userId: Value(user.id),
         name: Value(user.name),
         email: Value(user.email),
-        emailVerified: Value(user.emailVerified),
         notificationPreferencesJson:
             Value(jsonEncode(user.notificationPreferences)),
         serverSyncVersion: Value(syncVersion),

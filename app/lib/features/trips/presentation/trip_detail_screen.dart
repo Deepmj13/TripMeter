@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../app/app_services.dart';
 import '../../../core/database/app_database.dart';
 import '../../../shared/widgets/feedback.dart';
-import '../../../shared/widgets/sync_status_bar.dart';
 import '../../balances/presentation/balances_tab.dart';
 import '../../expenses/presentation/expenses_tab.dart';
 import '../../members/presentation/members_tab.dart';
@@ -102,7 +101,6 @@ class _TripScaffold extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          const SyncStatusBar(),
           if (trip.archivedAt != null)
             MaterialBanner(
               content: const Text('This trip is archived. Changes are locked.'),

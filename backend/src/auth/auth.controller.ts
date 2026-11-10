@@ -15,9 +15,7 @@ import {
   LogoutDto,
   RefreshDto,
   RegisterDto,
-  ResendVerificationDto,
   ResetPasswordDto,
-  VerifyEmailDto,
 } from './dto/auth.dto';
 
 @Controller('auth')
@@ -57,22 +55,6 @@ export class AuthController {
   @Post('logout-all')
   logoutAll(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.logoutAll(user.userId);
-  }
-
-  @Public()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  @HttpCode(200)
-  @Post('verify-email')
-  verifyEmail(@Body() dto: VerifyEmailDto) {
-    return this.authService.verifyEmail(dto.token);
-  }
-
-  @Public()
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @HttpCode(200)
-  @Post('resend-verification')
-  resendVerification(@Body() dto: ResendVerificationDto) {
-    return this.authService.resendVerification(dto);
   }
 
   @Public()

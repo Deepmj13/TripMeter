@@ -437,12 +437,8 @@ export class InvitationsService {
     }
 
     const user = await this.userModel.findById(userId).session(session).exec();
-    if (!user?.emailVerifiedAt) {
-      throw new AppError(
-        'AUTH_EMAIL_UNVERIFIED',
-        'Verify your email before accepting an invitation',
-        403,
-      );
+    if (!user) {
+      throw AppError.notFound('TRIP_NOT_FOUND', 'Account not found');
     }
     if (normalizeEmail(user.emailNormalized) !== invitation.emailNormalized) {
       throw AppError.forbidden();

@@ -5,7 +5,6 @@ import '../core/auth/session_manager.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/password_reset_screens.dart';
 import '../features/auth/presentation/register_screen.dart';
-import '../features/auth/presentation/verify_email_screen.dart';
 import '../features/expenses/presentation/expense_form_screen.dart';
 import '../features/invitations/presentation/invitations_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
@@ -20,7 +19,6 @@ const _loginRoutes = {
   '/register',
   '/forgot-password',
   '/reset-password',
-  '/verify-email',
 };
 
 /// Application routes. The session manager is the redirect source of truth so
@@ -58,10 +56,6 @@ GoRouter buildRouter(SessionManager session) {
       GoRoute(
         path: '/reset-password',
         builder: (context, state) => const ResetPasswordScreen(),
-      ),
-      GoRoute(
-        path: '/verify-email',
-        builder: (context, state) => const VerifyEmailScreen(),
       ),
       GoRoute(
         path: '/trips',

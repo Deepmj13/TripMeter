@@ -39,10 +39,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
       services.startSync();
       if (mounted) {
-        showMessage(
-          context,
-          'Account created. Check your email to verify your address.',
-        );
+        showMessage(context, 'Account created.');
         context.go('/trips');
       }
     } catch (error) {

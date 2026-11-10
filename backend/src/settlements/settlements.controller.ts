@@ -13,7 +13,6 @@ import {
   AuthenticatedUser,
   CurrentUser,
   IdempotencyKey,
-  RequiresVerifiedEmail,
 } from '../common/decorators';
 import {
   CreateSettlementDto,
@@ -26,7 +25,6 @@ import { SettlementsService } from './settlements.service';
 export class SettlementsController {
   constructor(private readonly settlementsService: SettlementsService) {}
 
-  @RequiresVerifiedEmail()
   @Post()
   create(
     @CurrentUser() user: AuthenticatedUser,
@@ -58,7 +56,6 @@ export class SettlementsController {
     return settlement;
   }
 
-  @RequiresVerifiedEmail()
   @Post(':settlementId/confirm')
   confirm(
     @CurrentUser() user: AuthenticatedUser,
@@ -76,7 +73,6 @@ export class SettlementsController {
     );
   }
 
-  @RequiresVerifiedEmail()
   @Post(':settlementId/reject')
   reject(
     @CurrentUser() user: AuthenticatedUser,
@@ -96,7 +92,6 @@ export class SettlementsController {
     );
   }
 
-  @RequiresVerifiedEmail()
   @Post(':settlementId/cancel')
   cancel(
     @CurrentUser() user: AuthenticatedUser,

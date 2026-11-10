@@ -10,7 +10,6 @@ import {
   AuthenticatedUser,
   CurrentUser,
   IdempotencyKey,
-  RequiresVerifiedEmail,
 } from '../common/decorators';
 import {
   ChangeRoleDto,
@@ -37,7 +36,6 @@ export class MembersController {
     return this.membersService.get(tripId, user.userId, memberId);
   }
 
-  @RequiresVerifiedEmail()
   @Post()
   addGuest(
     @CurrentUser() user: AuthenticatedUser,
@@ -92,7 +90,6 @@ export class MembersController {
     return this.membersService.remove(tripId, user.userId, memberId, idempotencyKey);
   }
 
-  @RequiresVerifiedEmail()
   @Post(':memberId/claim')
   claim(
     @CurrentUser() user: AuthenticatedUser,

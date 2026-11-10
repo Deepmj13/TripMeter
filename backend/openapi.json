@@ -111,54 +111,6 @@
         ]
       }
     },
-    "/auth/verify-email": {
-      "post": {
-        "operationId": "AuthController_verifyEmail",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyEmailDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/auth/resend-verification": {
-      "post": {
-        "operationId": "AuthController_resendVerification",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResendVerificationDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
     "/auth/forgot-password": {
       "post": {
         "operationId": "AuthController_forgotPassword",
@@ -1628,14 +1580,6 @@
         "properties": {}
       },
       "LogoutDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "VerifyEmailDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "ResendVerificationDto": {
         "type": "object",
         "properties": {}
       },

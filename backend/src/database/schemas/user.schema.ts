@@ -43,9 +43,6 @@ export class User {
   @Prop({ type: Date, required: true })
   passwordChangedAt!: Date;
 
-  @Prop({ type: Date, default: null })
-  emailVerifiedAt!: Date | null;
-
   @Prop({ type: NotificationPreferencesSchema, default: () => ({}) })
   notificationPreferences!: NotificationPreferences;
 

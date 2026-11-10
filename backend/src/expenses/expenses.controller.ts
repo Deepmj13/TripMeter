@@ -15,7 +15,6 @@ import {
   AuthenticatedUser,
   CurrentUser,
   IdempotencyKey,
-  RequiresVerifiedEmail,
 } from '../common/decorators';
 import {
   CreateExpenseDto,
@@ -28,7 +27,6 @@ import { ExpensesService } from './expenses.service';
 export class ExpensesController {
   constructor(private readonly expensesService: ExpensesService) {}
 
-  @RequiresVerifiedEmail()
   @Post()
   create(
     @CurrentUser() user: AuthenticatedUser,
@@ -60,7 +58,6 @@ export class ExpensesController {
     return expense;
   }
 
-  @RequiresVerifiedEmail()
   @Patch(':expenseId')
   update(
     @CurrentUser() user: AuthenticatedUser,
@@ -80,7 +77,6 @@ export class ExpensesController {
     );
   }
 
-  @RequiresVerifiedEmail()
   @Delete(':expenseId')
   remove(
     @CurrentUser() user: AuthenticatedUser,

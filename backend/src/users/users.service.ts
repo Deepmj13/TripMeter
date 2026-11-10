@@ -6,9 +6,6 @@ import * as argon2 from 'argon2';
 import { AppError } from '../common/errors/app-error';
 import { EventWriterService } from '../common/services/event-writer.service';
 import { MongoTransactionService } from '../common/services/mongo-transaction.service';
-import { EMAIL_VERIFICATION_TTL_HOURS } from '../common/constants';
-import { hashToken } from '../common/utils/canonical-json';
-import { addHours } from '../common/utils/dates';
 import { assertEmail, normalizeEmail } from '../common/utils/validation';
 import { AuthService, PublicUser } from '../auth/auth.service';
 import { DeviceToken, DeviceTokenDocument } from '../database/schemas/device-token.schema';
@@ -80,51 +77,8 @@ export class UsersService {
         throw AppError.conflict('EMAIL_IN_USE', 'An account with this email already exists');
       }
 
-      const rawToken = randomBytes(32).toString('base64url');
-      const now = new Date();
-      await this.transactions.run(async (session) => {
-        await this.userModel.updateOne(
-          { _id: userId },
-          {
-            $set: {
-              email: dto.email!.trim(),
-              emailNormalized,
-              emailVerifiedAt: null,
-            },
-          },
-          { session },
-        );
-        await this.userTokenModel.updateMany(
-          { userId, type: 'email_verification', usedAt: null, revokedAt: null },
-          { $set: { revokedAt: now } },
-          { session },
-        );
-        await this.userTokenModel.create(
-          [
-            {
-              _id: randomUUID(),
-              userId,
-              type: 'email_verification',
-              tokenHash: hashToken(rawToken),
-              expiresAt: addHours(now, EMAIL_VERIFICATION_TTL_HOURS),
-              usedAt: null,
-              revokedAt: null,
-            },
-          ],
-          { session },
-        );
-        await this.events.queueEmail(session, {
-          recipientUserId: userId,
-          recipientEmail: emailNormalized,
-          template: 'auth.email_verification',
-          payload: {
-            name: user.name,
-            token: rawToken,
-            expiresInHours: EMAIL_VERIFICATION_TTL_HOURS,
-          },
-          dedupeKey: `auth.email_verification:${userId}:${randomUUID()}`,
-        });
-      });
+      user.email = dto.email.trim();
+      user.emailNormalized = emailNormalized;
 
       await this.memberModel.updateMany(
         { userId, status: 'active' },
@@ -212,7 +166,6 @@ export class UsersService {
             email: anonymizedEmail,
             emailNormalized: anonymizedEmail,
             passwordHash: await argon2.hash(randomBytes(32).toString('hex')),
-            emailVerifiedAt: null,
             deletedAt: now,
             syncVersion: 0,
           },

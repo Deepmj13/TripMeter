@@ -25,7 +25,7 @@ Future<AppServices> bootstrapServices() async {
   final dio = Dio(
     BaseOptions(
       baseUrl: defaultApiBaseUrl(),
-      connectTimeout: const Duration(seconds: 15),
+      connectTimeout: const Duration(seconds: 30),
       sendTimeout: const Duration(seconds: 20),
       receiveTimeout: const Duration(seconds: 30),
       headers: {'Accept': 'application/json'},
@@ -33,6 +33,11 @@ Future<AppServices> bootstrapServices() async {
   );
   final session = SessionManager(dio: dio);
   dio.interceptors.add(AuthInterceptor(session));
+
+  // Wake the API while the user is still on the sign-in screen. The hosted
+  // server sleeps when idle and its first response can take well over the
+  // regular request timeouts; this ping starts that cold boot immediately.
+  unawaited(_warmUpApi(dio));
 
   final api = ApiClient(dio, session);
   final databases = DatabaseManager();
@@ -59,4 +64,22 @@ Future<AppServices> bootstrapServices() async {
     api: api,
     sync: sync,
   );
+}
+
+/// Best-effort request that triggers the API cold boot. Its own patience is
+/// larger than any regular timeout because the server may take a minute or
+/// more to wake; failures are ignored because sign-in retries on its own.
+Future<void> _warmUpApi(Dio dio) async {
+  try {
+    await dio.get<dynamic>(
+      '/health/ready',
+      options: Options(
+        connectTimeout: const Duration(seconds: 120),
+        receiveTimeout: const Duration(seconds: 120),
+        extra: {'skipAuth': true},
+      ),
+    );
+  } catch (_) {
+    // Sign-in shows a proper error and retries when the user is ready.
+  }
 }

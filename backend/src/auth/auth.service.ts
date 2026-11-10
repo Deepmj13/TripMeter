@@ -12,10 +12,9 @@ import { AppError } from '../common/errors/app-error';
 import { EventWriterService } from '../common/services/event-writer.service';
 import { MongoTransactionService } from '../common/services/mongo-transaction.service';
 import { hashToken } from '../common/utils/canonical-json';
-import { addDays, addHours, addMinutes, isExpired } from '../common/utils/dates';
+import { addDays, addMinutes, isExpired } from '../common/utils/dates';
 import { assertEmail, normalizeEmail } from '../common/utils/validation';
 import {
-  EMAIL_VERIFICATION_TTL_HOURS,
   PASSWORD_RESET_TTL_MINUTES,
   REFRESH_TOKEN_TTL_DAYS,
 } from '../common/constants';
@@ -24,7 +23,6 @@ import {
   ForgotPasswordDto,
   LoginDto,
   RegisterDto,
-  ResendVerificationDto,
   ResetPasswordDto,
 } from './dto/auth.dto';
 
@@ -32,7 +30,6 @@ export interface PublicUser {
   id: string;
   name: string;
   email: string;
-  emailVerified: boolean;
   notificationPreferences: Record<string, boolean>;
   createdAt?: Date;
   updatedAt?: Date;
@@ -68,7 +65,6 @@ export class AuthService {
     const now = new Date();
     const passwordHash = await argon2.hash(dto.password, { type: argon2.argon2id });
     const userId = randomUUID();
-    const rawVerificationToken = randomBytes(32).toString('base64url');
 
     const user = await this.transactions.run(async (session) => {
       const created = await this.userModel.create(
@@ -80,7 +76,6 @@ export class AuthService {
             emailNormalized,
             passwordHash,
             passwordChangedAt: now,
-            emailVerifiedAt: null,
             notificationPreferences: {
               push: true,
               email: true,
@@ -94,33 +89,6 @@ export class AuthService {
         ],
         { session },
       );
-
-      await this.userTokenModel.create(
-        [
-          {
-            _id: randomUUID(),
-            userId,
-            type: 'email_verification',
-            tokenHash: hashToken(rawVerificationToken),
-            expiresAt: addHours(now, EMAIL_VERIFICATION_TTL_HOURS),
-            usedAt: null,
-            revokedAt: null,
-          },
-        ],
-        { session },
-      );
-
-      await this.events.queueEmail(session, {
-        recipientUserId: userId,
-        recipientEmail: emailNormalized,
-        template: 'auth.email_verification',
-        payload: {
-          name: dto.name.trim(),
-          token: rawVerificationToken,
-          expiresInHours: EMAIL_VERIFICATION_TTL_HOURS,
-        },
-        dedupeKey: `auth.email_verification:${userId}:${randomUUID()}`,
-      });
 
       return created[0];
     });
@@ -220,82 +188,6 @@ export class AuthService {
       { userId, revokedAt: null },
       { $set: { revokedAt: new Date(), revokedReason: 'logout_all' } },
     );
-    return null;
-  }
-
-  async verifyEmail(rawToken: string): Promise<PublicUser> {
-    const tokenHash = hashToken(rawToken);
-    const token = await this.userTokenModel.findOne({
-      tokenHash,
-      type: 'email_verification',
-      usedAt: null,
-      revokedAt: null,
-    });
-    if (!token || isExpired(token.expiresAt)) {
-      throw new AppError('AUTH_TOKEN_INVALID', 'The verification token is invalid or expired', 400);
-    }
-
-    const user = await this.userModel.findOne({ _id: token.userId, deletedAt: null }).exec();
-    if (!user) {
-      throw new AppError('AUTH_TOKEN_INVALID', 'The verification token is invalid', 400);
-    }
-
-    const now = new Date();
-    await this.transactions.run(async (session) => {
-      token.usedAt = now;
-      await token.save({ session });
-      if (!user.emailVerifiedAt) {
-        user.emailVerifiedAt = now;
-        await user.save({ session });
-      }
-    });
-
-    return this.toPublicUser(user);
-  }
-
-  async resendVerification(dto: ResendVerificationDto): Promise<null> {
-    const emailNormalized = normalizeEmail(dto.email);
-    const user = await this.userModel
-      .findOne({ emailNormalized, deletedAt: null })
-      .exec();
-
-    if (!user || user.emailVerifiedAt) return null;
-
-    const rawToken = randomBytes(32).toString('base64url');
-    const now = new Date();
-    await this.transactions.run(async (session) => {
-      await this.userTokenModel.updateMany(
-        { userId: user._id, type: 'email_verification', usedAt: null, revokedAt: null },
-        { $set: { revokedAt: now } },
-        { session },
-      );
-      await this.userTokenModel.create(
-        [
-          {
-            _id: randomUUID(),
-            userId: user._id,
-            type: 'email_verification',
-            tokenHash: hashToken(rawToken),
-            expiresAt: addHours(now, EMAIL_VERIFICATION_TTL_HOURS),
-            usedAt: null,
-            revokedAt: null,
-          },
-        ],
-        { session },
-      );
-      await this.events.queueEmail(session, {
-        recipientUserId: user._id,
-        recipientEmail: emailNormalized,
-        template: 'auth.email_verification',
-        payload: {
-          name: user.name,
-          token: rawToken,
-          expiresInHours: EMAIL_VERIFICATION_TTL_HOURS,
-        },
-        dedupeKey: `auth.email_verification:${user._id}:${randomUUID()}`,
-      });
-    });
-
     return null;
   }
 
@@ -481,7 +373,6 @@ export class AuthService {
       id: user._id,
       name: user.name,
       email: user.email,
-      emailVerified: Boolean(user.emailVerifiedAt),
       notificationPreferences: user.notificationPreferences as unknown as Record<string, boolean>,
       createdAt: (user as unknown as { createdAt?: Date }).createdAt,
       updatedAt: (user as unknown as { updatedAt?: Date }).updatedAt,

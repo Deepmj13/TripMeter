@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
-export type UserTokenType = 'email_verification' | 'password_reset';
+export type UserTokenType = 'password_reset';
 
 @Schema({ timestamps: { createdAt: true, updatedAt: false }, versionKey: false, collection: 'userTokens' })
 export class UserToken {
@@ -11,7 +11,7 @@ export class UserToken {
   @Prop({ type: String, required: true })
   userId!: string;
 
-  @Prop({ type: String, required: true, enum: ['email_verification', 'password_reset'] })
+  @Prop({ type: String, required: true, enum: ['password_reset'] })
   type!: UserTokenType;
 
   @Prop({ type: String, required: true })

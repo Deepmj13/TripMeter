@@ -19,8 +19,17 @@ class ApiClient {
     String path, {
     Object? data,
     String? idempotencyKey,
+    Duration? receiveTimeout,
+    bool skipAuth = false,
   }) =>
-      _request('POST', path, data: data, idempotencyKey: idempotencyKey);
+      _request(
+        'POST',
+        path,
+        data: data,
+        idempotencyKey: idempotencyKey,
+        receiveTimeout: receiveTimeout,
+        skipAuth: skipAuth,
+      );
 
   Future<Map<String, dynamic>> patch(
     String path, {
@@ -57,6 +66,8 @@ class ApiClient {
     Map<String, dynamic>? query,
     String? idempotencyKey,
     String? ifMatch,
+    Duration? receiveTimeout,
+    bool skipAuth = false,
   }) async {
     try {
       final response = await dio.request<dynamic>(
@@ -65,10 +76,12 @@ class ApiClient {
         queryParameters: query,
         options: Options(
           method: method,
+          receiveTimeout: receiveTimeout,
           headers: {
             'Idempotency-Key': ?idempotencyKey,
             'If-Match': ?ifMatch,
           },
+          extra: {'skipAuth': skipAuth},
         ),
       );
       final payload = response.data;

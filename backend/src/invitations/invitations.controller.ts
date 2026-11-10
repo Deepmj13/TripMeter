@@ -3,7 +3,6 @@ import {
   AuthenticatedUser,
   CurrentUser,
   IdempotencyKey,
-  RequiresVerifiedEmail,
 } from '../common/decorators';
 import {
   AcceptInvitationTokenDto,
@@ -16,7 +15,6 @@ import { InvitationsService } from './invitations.service';
 export class TripInvitationsController {
   constructor(private readonly invitationsService: InvitationsService) {}
 
-  @RequiresVerifiedEmail()
   @Post()
   create(
     @CurrentUser() user: AuthenticatedUser,
@@ -43,7 +41,6 @@ export class InvitationsController {
   }
 
   @Post('accept')
-  @RequiresVerifiedEmail()
   acceptByToken(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: AcceptInvitationTokenDto,
@@ -87,7 +84,6 @@ export class InvitationsController {
   }
 
   @Post(':invitationId/accept')
-  @RequiresVerifiedEmail()
   acceptById(
     @CurrentUser() user: AuthenticatedUser,
     @Param('invitationId') invitationId: string,
